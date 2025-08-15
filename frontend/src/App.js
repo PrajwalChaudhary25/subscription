@@ -6,8 +6,6 @@ import { LogIn, User, ShoppingCart, Loader2, RefreshCw } from 'lucide-react';
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
 // Create a custom axios instance with a request interceptor
-// This ensures that the Authorization header is automatically
-// included in every request if a token exists in localStorage.
 const api = axios.create({
   baseURL: API_BASE_URL,
 });
@@ -27,14 +25,16 @@ api.interceptors.request.use(
 
 
 function App() {
-
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [plans, setPlans] = useState([]);
   const [subscription, setSubscription] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [currentPage, setCurrentPage] = useState('login'); // 'login', 'plans', 'dashboard'
+  const [currentPage, setCurrentPage] = useState('login'); // 'login', 'plans', 'payment_upload', 'dashboard'
+
+  // State to hold the plan ID for payment upload
+  const [selectedPlanId, setSelectedPlanId] = useState(null);
 
   useEffect(() => {
     const savedToken = localStorage.getItem('authToken');
@@ -44,41 +44,27 @@ function App() {
     }
   }, []);
 
-  // This useEffect now includes the polling logic and checks for both token and user
+  // This useEffect no longer includes the polling logic. It will only run once
+  // when the token or user state changes (e.g., after login).
   useEffect(() => {
-    let intervalId = null;
     if (token && user) {
-      // Immediately fetch data when the user logs in
+      // Fetch data when the user logs in or state changes
       fetchSubscriptionStatus();
       fetchPlans();
-
-      // Set up an interval to fetch subscription status every 10 seconds
-      intervalId = setInterval(() => {
-        console.log("Polling for subscription status...");
-        fetchSubscriptionStatus();
-      }, 10000); // Poll every 10 seconds
     }
-
-    // This is the cleanup function that will clear the interval
-    // when the component unmounts or the token or user changes.
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
   }, [token, user]);
 
 
   const fetchUserData = async (authToken) => {
     try {
-      // The custom api instance already handles the Authorization header.
       const response = await api.get('/api/user/');
       setUser(response.data);
-      setCurrentPage('plans');
+      // The page to show after login is now determined by fetchSubscriptionStatus
     } catch (error) {
       console.error('Failed to fetch user data', error);
       localStorage.removeItem('authToken');
       setToken(null);
+      setCurrentPage('login');
     }
   };
 
@@ -94,23 +80,27 @@ function App() {
 
   const fetchSubscriptionStatus = async () => {
     setIsLoading(true);
-    // Conditional check for user.id to prevent errors
     if (!user || !user.id) {
       setIsLoading(false);
       return;
     }
 
     try {
-      // Corrected URL to match the backend configuration
+      // Fetch all subscriptions for the user (only shows verified/active history)
       const response = await api.get(`/api/users/${user.id}/subscriptions/`);
       if (response.data.length > 0) {
-        // Sort subscriptions by end date to ensure we get the most recent one
+        // Sort to get the most recent subscription
         const latestSub = response.data.sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
         setSubscription(latestSub);
-        setCurrentPage('dashboard');
+        
+        if (latestSub.status === 'ACTIVE') {
+            setCurrentPage('dashboard');
+        } else {
+            setCurrentPage('dashboard');
+        }
       } else {
         setSubscription(null);
-        setCurrentPage('plans');
+        setCurrentPage('plans'); // No subscriptions, show plans
       }
     } catch (error) {
       console.error('Failed to fetch subscription status', error);
@@ -122,16 +112,14 @@ function App() {
     }
   };
 
-
   const handleLogin = async (username, password) => {
     setIsLoading(true);
     try {
-      // The login endpoint doesn't require a token yet, so we use the base axios instance
       const response = await axios.post(`${API_BASE_URL}/api/token/`, { username, password });
       const { token } = response.data;
       setToken(token);
       localStorage.setItem('authToken', token);
-      fetchUserData(token);
+      await fetchUserData(token); // Wait for user data to be fetched
     } catch (error) {
       setMessage('Login failed. Please check your credentials.');
       console.error('Login error', error);
@@ -148,32 +136,65 @@ function App() {
     setCurrentPage('login');
   };
 
+  // NEW: handlePurchase function
   const handlePurchase = async (planId) => {
     setIsLoading(true);
     setMessage('');
     try {
-      // Use the custom api instance for the request
-      await api.post('/api/purchase/', { plan_id: planId });
-      setMessage('Purchase successful! Updating status...');
-      // Fetch the subscription status again after a short delay
-      setTimeout(() => fetchSubscriptionStatus(), 2000);
+      // The purchase endpoint now just validates and returns plan info
+      const response = await api.post('/api/purchase/', { plan_id: planId });
+      
+      // Set the selected plan ID and navigate to the payment upload page
+      setSelectedPlanId(planId);
+      setCurrentPage('payment_upload');
+      setMessage('Please upload payment proof to complete your purchase.');
     } catch (error) {
-      setMessage(`Purchase failed: ${error.response?.data?.error || 'An error occurred.'}`);
+      setMessage(`Selection failed: ${error.response?.data?.error || 'An error occurred.'}`);
       console.error('Purchase error', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // NEW: handlePaymentProofUpload function
+  const handlePaymentProofUpload = async (file) => {
+      setIsLoading(true);
+      setMessage('');
+      
+      const formData = new FormData();
+      formData.append('payment_proof', file);
+      formData.append('plan', selectedPlanId);  // Send plan ID instead of subscription ID
+
+      try {
+          await api.post('/api/payments/', formData, {
+              headers: {
+                  // When using FormData, axios automatically sets the Content-Type header to multipart/form-data with the correct boundary.
+                  // Explicitly setting it can sometimes cause issues. We'll let axios handle it.
+                  // Remove this line: 'Content-Type': 'multipart/form-data',
+              },
+          });
+          setMessage('Payment proof uploaded successfully. Awaiting admin verification.');
+          // Reset the selected plan ID as the payment is now created
+          setSelectedPlanId(null);
+          // Navigate back to plans or dashboard
+          setCurrentPage('plans');
+      } catch (error) {
+          setMessage(`Upload failed: ${error.response?.data?.error || 'An error occurred.'}`);
+          console.error('Payment upload error', error);
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
+  // The handleRenew function is kept for completeness.
   const handleRenew = async () => {
     setIsLoading(true);
     setMessage('');
     try {
-      // Use the custom api instance for the renew request, which automatically includes the token
       await api.post('/api/renew/');
       setMessage('Renewal successful! Updating status...');
-      // Fetch the subscription status again after a short delay
-      setTimeout(() => fetchSubscriptionStatus(), 2000);
+      // After renewal, we immediately check the new status
+      fetchSubscriptionStatus();
     } catch (error) {
       setMessage(`Renewal failed: ${error.response?.data?.error || 'An error occurred.'}`);
       console.error('Renewal error', error);
@@ -184,12 +205,7 @@ function App() {
 
   const renderContent = () => {
     if (isLoading) {
-      return (
-        <div className="flex flex-col items-center justify-center p-8">
-          <Loader2 className="animate-spin text-indigo-600 h-10 w-10 mb-4" />
-          <p className="text-gray-600 font-medium">Loading...</p>
-        </div>
-      );
+      return <LoadingSpinner />;
     }
 
     switch (currentPage) {
@@ -197,6 +213,9 @@ function App() {
         return <LoginForm onLogin={handleLogin} message={message} />;
       case 'plans':
         return <PlansList plans={plans} onPurchase={handlePurchase} message={message} />;
+      // NEW: A page for uploading payment proof
+      case 'payment_upload':
+          return <PaymentUploadForm onUpload={handlePaymentProofUpload} planId={selectedPlanId} message={message} />;
       case 'dashboard':
         return <UserDashboard subscription={subscription} onRenew={handleRenew} message={message} />;
       default:
@@ -323,7 +342,8 @@ const UserDashboard = ({ subscription, onRenew, message }) => {
     );
   }
 
-  const isActive = subscription.is_active;
+  const isActive = subscription.status === 'ACTIVE';
+  const isPending = subscription.status === 'PENDING';
 
   return (
     <div className="p-6">
@@ -338,12 +358,12 @@ const UserDashboard = ({ subscription, onRenew, message }) => {
           <p className="text-lg text-gray-900">{subscription.end_date}</p>
 
           <p className="text-lg font-semibold text-gray-700">Status:</p>
-          <p className={`text-lg font-bold ${isActive ? 'text-green-600' : 'text-red-600'}`}>
-            {isActive ? 'Active' : 'Inactive'}
+          <p className={`text-lg font-bold ${isActive ? 'text-green-600' : (isPending ? 'text-yellow-600' : 'text-red-600')}`}>
+            {subscription.status}
           </p>
         </div>
       </div>
-      {!isActive && (
+      {!isActive && !isPending && (
         <div className="mt-6 text-center">
           <button
             onClick={onRenew}
@@ -357,5 +377,57 @@ const UserDashboard = ({ subscription, onRenew, message }) => {
     </div>
   );
 };
+
+const LoadingSpinner = () => (
+  <div className="flex flex-col items-center justify-center p-8">
+    <Loader2 className="animate-spin text-indigo-600 h-10 w-10 mb-4" />
+    <p className="text-gray-600 font-medium">Loading...</p>
+  </div>
+);
+
+// A component for handling payment proof uploads.
+const PaymentUploadForm = ({ onUpload, planId, message }) => {
+    const [file, setFile] = useState(null);
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (file) {
+        onUpload(file);
+      }
+    };
+
+    return (
+      <div className="flex flex-col items-center">
+        <h2 className="text-2xl font-bold mb-6 text-center">Upload Payment Proof</h2>
+        <p className="text-gray-600 mb-4 text-center">
+          Please upload a screenshot or image of your payment. This will be used by an admin to verify your subscription.
+        </p>
+        {message && <p className="text-red-500 text-xs italic mb-4 text-center">{message}</p>}
+        <form onSubmit={handleSubmit} className="w-full max-w-sm">
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="paymentProof">
+              Payment Proof
+            </label>
+            <input
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              id="paymentProof"
+              type="file"
+              accept="image/*"
+              onChange={(e) => setFile(e.target.files[0])}
+            />
+          </div>
+          <div className="flex items-center justify-center">
+            <button
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 disabled:cursor-not-allowed"
+              type="submit"
+              disabled={!file}
+            >
+              Upload Proof
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  };
 
 export default App;
