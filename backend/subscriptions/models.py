@@ -15,7 +15,7 @@ class SubscriptionPlan(models.Model):
 class UserSubscription(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     plan = models.ForeignKey(SubscriptionPlan, on_delete=models.CASCADE)
-    start_date = models.DateField(auto_now_add=True)
+    start_date = models.DateField()
     end_date = models.DateField(null=True)
     
     # This new @property method dynamically calculates if the subscription is active.

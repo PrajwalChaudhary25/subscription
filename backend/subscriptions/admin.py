@@ -11,7 +11,6 @@ class UserSubscriptionAdmin(admin.ModelAdmin):
     list_display = ('user', 'plan', 'start_date', 'end_date', 'status')
     list_filter = ('plan',) 
     search_fields = ('user__username', 'plan__name')
-    readonly_fields = ('start_date',)
     fields = ('user', 'plan', 'start_date', 'end_date')
 
     def status(self, obj):
