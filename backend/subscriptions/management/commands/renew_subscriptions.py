@@ -14,30 +14,24 @@ class Command(BaseCommand):
     help = 'Renews active subscriptions that have reached their end date and have a successful payment.'
 
     def handle(self, *args, **options):
-        expired_subscriptions = UserSubscription.objects.filter(
-            is_active=True,
+        # We now find subscriptions to renew based purely on the end_date.
+        subscriptions_to_renew = UserSubscription.objects.filter(
             end_date__lte=timezone.now().date()
         )
 
-        self.stdout.write(self.style.NOTICE(f'Found {expired_subscriptions.count()} expired subscriptions to process.'))
+        self.stdout.write(self.style.NOTICE(f'Found {subscriptions_to_renew.count()} expired subscriptions to process.'))
 
-        for subscription in expired_subscriptions:
+        for subscription in subscriptions_to_renew:
             payment_successful = process_payment(subscription.user, subscription.plan)
 
             if payment_successful:
-                # Deactivate the old subscription
-                subscription.is_active = False
-                subscription.save()
-
-                # Create a new subscription instance.
-                # Crucially, we now explicitly set the start_date to the current date.
+                # The old subscription is now "inactive" automatically due to its end_date.
+                # We just need to create the new one.
                 new_subscription = UserSubscription(
                     user=subscription.user,
                     plan=subscription.plan,
                     start_date=timezone.now().date(),
                 )
-                
-                # Call the save method to trigger our end_date calculation
                 new_subscription.save()
                 
                 self.stdout.write(self.style.SUCCESS(

@@ -4,7 +4,10 @@ from .views import (
     SubscriptionPlanRetrieveUpdateDestroy,
     UserSubscriptionListCreate, 
     UserSubscriptionRetrieveUpdateDestroy,  
-    UserSubscriptions
+    UserSubscriptions, 
+    RenewSubscriptionView,
+    PurchaseSubscriptionView,
+    UserDetailView,
 )
 
 urlpatterns = [
@@ -13,5 +16,7 @@ urlpatterns = [
     path('subscriptions/', UserSubscriptionListCreate.as_view(), name='subscription-list-create'), 
     path('subscriptions/<int:pk>/', UserSubscriptionRetrieveUpdateDestroy.as_view(), name='subscription-retrieve-update-destroy'), 
     path('users/<int:user_id>/subscriptions/', UserSubscriptions.as_view(), name='user-subscriptions'),
+    path('renew/', RenewSubscriptionView.as_view(), name='renew-subscription'),
+    path('purchase/', PurchaseSubscriptionView.as_view(), name='purchase-subscription'),
+    path('user/', UserDetailView.as_view(), name='user-detail'),
 ]
-
