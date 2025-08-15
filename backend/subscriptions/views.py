@@ -42,7 +42,6 @@ class UserSubscriptionRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIVie
     
 class UserSubscriptions(APIView):
     def get(self, request, user_id):
-        # Get all subscriptions for the user, regardless of status, and order by start date
         subscriptions = UserSubscription.objects.filter(user__id=user_id).order_by('-start_date')
         serializer = UserSubscriptionSerializer(subscriptions, many=True)
         return Response(serializer.data)

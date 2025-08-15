@@ -54,3 +54,4 @@ class Payment(models.Model):
     def __str__(self):
         plan_name = self.plan.name if self.plan else "No Plan"
         return f"Payment for {self.user.username} - {plan_name} ({self.created_at.strftime('%Y-%m-%d')})"
+

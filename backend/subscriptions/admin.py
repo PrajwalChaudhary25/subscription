@@ -13,27 +13,19 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
 @admin.register(UserSubscription)
 class UserSubscriptionAdmin(admin.ModelAdmin):
     list_display = ('user', 'plan', 'status', 'status_icon', 'start_date', 'end_date')
+    readonly_fields = ('status',)
     list_filter = ('plan', 'status')
     search_fields = ('user__username', 'plan__name')
     
     def status_icon(self, obj):
         """Display visual status indicator with tick/cross marks"""
-        if obj.status == 'ACTIVE':
-            if obj.is_active:
-                return format_html('<span style="color: green; font-size: 18px;">✓</span> <span style="color: green;">Active</span>')
-            else:
-                # Status is ACTIVE but date has expired
-                return format_html('<span style="color: orange; font-size: 18px;">⚠</span> <span style="color: orange;">Needs Update</span>')
-        elif obj.status == 'EXPIRED':
-            return format_html('<span style="color: red; font-size: 18px;">✗</span> <span style="color: red;">Expired</span>')
-        elif obj.status == 'CANCELED':
-            return format_html('<span style="color: gray; font-size: 18px;">✗</span> <span style="color: gray;">Canceled</span>')
-        elif obj.status == 'PENDING':
-            return format_html('<span style="color: orange; font-size: 18px;">⏳</span> <span style="color: orange;">Pending</span>')
+        if obj.is_active:
+            return format_html('<span style="color: green; font-size: 18px;">✓</span> <span style="color: green;">Active</span>')
         else:
-            return format_html('<span style="color: gray; font-size: 18px;">?</span> <span style="color: gray;">Unknown</span>')
-    
-    status_icon.short_description = 'Visual Status'
+            # Status is ACTIVE but date has expired
+            return format_html('<span style="color: red; font-size: 18px;">X </span> <span style="color: orange;"></span>')
+     
+    status_icon.short_description = 'Status'
     
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
