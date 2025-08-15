@@ -134,3 +134,21 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+
+import os
+from pathlib import Path
+
+# ... (existing settings)
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# ... (existing settings)
+
+# Media files
+# The absolute path to the directory where uploaded files will be stored.
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# The URL that handles the media served from MEDIA_ROOT.
+MEDIA_URL = '/media/'
+
+
