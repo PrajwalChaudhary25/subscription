@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SubscriptionPlan, UserSubscription, Payment
+from ..models import SubscriptionPlan, UserSubscription, Payment
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):

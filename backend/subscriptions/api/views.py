@@ -1,11 +1,11 @@
-# In your views.py
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-# Ensure you import the new Payment model here
-from .models import UserSubscription, SubscriptionPlan, Payment
+
+
+from ..models import UserSubscription, SubscriptionPlan, Payment
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from .serializers import SubscriptionPlanSerializer, UserSubscriptionSerializer, UserSerializer, PaymentSerializer
