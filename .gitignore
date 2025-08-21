@@ -1,4 +1,3 @@
 myenv/
-*.md
 node_modules/
 backend/media/payment_proofs/
