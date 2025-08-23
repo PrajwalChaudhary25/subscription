@@ -359,9 +359,11 @@ const UserDashboard = ({ subscription, onRenew, message }) => {
         <p className="text-gray-600 font-medium">You don't have an active subscription. Please visit the Plans page.</p>
       </div>
     );
-  }
 
-  const isActive = subscription.status === 'ACTIVE';
+  }
+  console.log(subscription)
+
+  const isActive = subscription.is_active;
   const isPending = subscription.status === 'PENDING';
   const isExpired = subscription.status === 'EXPIRED';
 
@@ -379,19 +381,20 @@ const UserDashboard = ({ subscription, onRenew, message }) => {
 
           <p className="text-lg font-semibold text-gray-700">Status:</p>
           <p className={`text-lg font-bold ${isActive ? 'text-green-600' : (isPending ? 'text-yellow-600' : 'text-red-600')}`}>
-            {subscription.status}
+            {subscription.is_active ? 'Active' : 'inactive'}
           </p>
         </div>
       </div>
-      {isExpired && (
+      {!isActive && (
         <div className="mt-6 text-center">
-          <button
+          {/* <button
             onClick={onRenew}
             className="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           >
             <RefreshCw className="inline-block h-5 w-5 mr-2" />
             Renew Subscription
-          </button>
+          </button> */}
+          <p className="text-gray-600">Your subscription is not active. Please visit the Plans page to purchase or renew your subscription.</p>
         </div>
       )}
     </div>

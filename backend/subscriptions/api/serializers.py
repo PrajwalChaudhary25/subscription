@@ -15,7 +15,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
 class UserSubscriptionSerializer(serializers.ModelSerializer):
     plan = SubscriptionPlanSerializer(read_only=True)
     plan_id = serializers.PrimaryKeyRelatedField(queryset=SubscriptionPlan.objects.all(), write_only=True, source='plan')
-    
+    is_active = serializers.ReadOnlyField()
     class Meta:
         model = UserSubscription
         fields = '__all__'

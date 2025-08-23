@@ -48,7 +48,7 @@ class UserSubscriptions(APIView):
     
 
 class RenewSubscriptionView(generics.GenericAPIView):
-    authentication_classes = [TokenAuthentication]
+    # authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
@@ -79,7 +79,7 @@ class RenewSubscriptionView(generics.GenericAPIView):
 
 class PurchaseSubscriptionView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes = [TokenAuthentication]
+    # authentication_classes = [TokenAuthentication]
 
     def post(self, request, *args, **kwargs):
         user = request.user
@@ -93,7 +93,7 @@ class PurchaseSubscriptionView(generics.GenericAPIView):
         
         try:
             # Check if the user already has an active subscription
-            active_subscriptions = UserSubscription.objects.filter(user=user, status='ACTIVE')
+            active_subscriptions = UserSubscription.objects.filter(user=user,end_date__gte=timezone.now().date())
             if active_subscriptions.exists():
                 return Response(
                     {"error": "You already have an active subscription."},
@@ -120,7 +120,7 @@ class PurchaseSubscriptionView(generics.GenericAPIView):
             )
             
 class UserDetailView(generics.RetrieveAPIView):
-    authentication_classes = [TokenAuthentication]
+    # authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
     
@@ -142,7 +142,7 @@ class PaymentCreateView(generics.CreateAPIView):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [TokenAuthentication]
+    # authentication_classes = [TokenAuthentication]
 
     def create(self, request, *args, **kwargs):
         
@@ -170,7 +170,7 @@ class PaymentCreateView(generics.CreateAPIView):
             )
         
         # Check if user has an active subscription
-        active_sub = UserSubscription.objects.filter(user=request.user, status='ACTIVE').first()
+        active_sub = UserSubscription.objects.filter(user=request.user, end_date__gte=timezone.now().date()).first()
         if active_sub:
             logger.error(f"PaymentCreateView - User already has active subscription")
             return Response(

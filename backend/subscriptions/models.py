@@ -31,7 +31,9 @@ class UserSubscription(models.Model):
     @property
     def is_active(self):
         """Check if subscription is currently active"""
-        return self.status == 'ACTIVE' and self.end_date and self.end_date >= timezone.now().date()
+        # return self.status == 'ACTIVE' and self.end_date and self.end_date >= timezone.now().date()
+        if (self.end_date):
+            return  self.end_date >= timezone.now().date()
 
     def __str__(self):
         return f"{self.user.username}'s {self.plan.name} subscription ({self.status})"

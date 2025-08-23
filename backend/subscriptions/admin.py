@@ -11,20 +11,25 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
 
 @admin.register(UserSubscription)
 class UserSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('user', 'plan', 'status', 'status_icon', 'start_date', 'end_date')
+    list_display = ('user', 'plan', 'is_active_display', 'start_date', 'end_date')
     readonly_fields = ('status',)
     list_filter = ('plan', 'status')
     search_fields = ('user__username', 'plan__name')
     
-    def status_icon(self, obj):
-        """Display visual status indicator with tick/cross marks"""
-        if obj.is_active:
-            return format_html('<span style="color: green; font-size: 18px;">✓</span> <span style="color: green;">Active</span>')
-        else:
-            # Status is ACTIVE but date has expired
-            return format_html('<span style="color: red; font-size: 18px;">X </span> <span style="color: orange;"></span>')
+    # def status_icon(self, obj):
+    #     """Display visual status indicator with tick/cross marks"""
+    #     if obj.is_active:
+    #         return format_html('<span style="color: green; font-size: 18px;">✓</span> <span style="color: green;">Active</span>')
+    #     else:
+    #         # Status is ACTIVE but date has expired
+    #         return format_html('<span style="color: red; font-size: 18px;">X </span> <span style="color: orange;"></span>')
      
-    status_icon.short_description = 'Status'
+    # status_icon.short_description = 'Status'
+    
+    def is_active_display(self, obj):
+        return obj.is_active
+    is_active_display.boolean = True  # shows a nice ✔/✖ in admin
+    is_active_display.short_description = 'Active?'  # column header
     
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
